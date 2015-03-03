@@ -1,0 +1,71 @@
+﻿<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <!--Reference the SignalR library. -->
+    <script type="text/javascript" src="Scripts/jquery-1.10.2.js"></script>
+    <script type="text/javascript" src="Scripts/angular.js"></script>
+    <script src="Scripts/jquery.signalR-2.2.0.min.js"></script>
+    <script>
+        var app = angular.module('app', []);
+        app.value('$', $);
+
+        app.factory('signalRSvc', function ($, $rootScope) {
+            return {
+                proxy: null,
+                initialize: function (acceptGreetCallback) {
+                    //Getting the connection object
+                    connection = $.hubConnection();
+
+                    //Creating proxy
+                    this.proxy = connection.createHubProxy('helloWorldHub');
+
+                    //Starting connection
+                    connection.start();
+
+                    //Attaching a callback to handle acceptGreet client call
+                    this.proxy.on('acceptGreet', function (message) {
+                        $rootScope.$apply(function () {
+                            acceptGreetCallback(message);
+                        });
+                    });
+                },
+                sendRequest: function (callback) {
+                    //Invoking greetAll method defined in hub
+                    this.proxy.invoke('greetAll');
+                }
+            }
+        });
+
+        function SignalRAngularCtrl($scope, signalRSvc, $rootScope) {
+            $scope.text = "";
+
+            $scope.greetAll = function () {
+                signalRSvc.sendRequest();
+            }
+
+            updateGreetingMessage = function (text) {
+                $scope.text = text;
+            }
+
+            signalRSvc.initialize();
+
+            //Updating greeting message after receiving a message through the event
+
+            $scope.$parent.$on("acceptGreet", function (e, message) {
+                $scope.$apply(function () {
+                    updateGreetingMessage(message)
+                });
+            });
+        }
+
+    </script>
+    <title></title>
+</head>
+<body>
+hello
+    <div data-ng-app="app" data-ng-controller="SignalRAngularCtrl">
+        <input type="button" name="GreetAll" value="Greet All" data-ng-click="greetAll()" />
+        <span>{{text}}</span>
+    </div>
+</body>
+</html>
